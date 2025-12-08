@@ -71,10 +71,7 @@ def load_data():
     }
 
     # 模拟 Google 动态抓取 Logo 的逻辑 (功能性占位符)
-    # 在实际应用中，这里需要一个稳定的 CDN URL 或一个能够接受 ticker 参数并返回 logo 图像的服务。
     def get_google_logo_url(ticker):
-        # 模拟 Googleusercontent.com 的动态抓取结构
-        # 使用 ticker 作为查询参数，但指向一个稳定的占位符图像 URL 以避免代码报错
         return f"https://via.placeholder.com/30/1A73E8/FFFFFF?text={ticker}"
     
     raw_data = [
@@ -113,16 +110,8 @@ def load_data():
     df['Logo_Name'] = df.apply(lambda row: f"{row['Full_Name']} ({row['Ticker']})", axis=1)
     
     df = df.sort_values(by=['Date', 'Value_Billions'], ascending=[True, False])
-    # 原始的返回 (出错点):
-    # return df, full_name_map, get_google_logo_url, sector_map
-    
-    # 修正后的返回:
     return df, full_name_map, sector_map
-    
-# 原始的调用 (出错点):
-# df, full_name_map, get_google_logo_url, sector_map = load_data()
 
-# 修正后的调用:
 df, full_name_map, sector_map = load_data()
 
 # -----------------------------------------------------------------------------
@@ -138,7 +127,6 @@ date_range = st.sidebar.slider(
     "⏳ Select Time Period",
     min_value=min_date,
     max_value=max_date,
-    # 修正 Slider 的默认值，确保开始和结束日期都在DataFrame的范围内
     value=(min_date, max_date),
     format="YYYY-MM"
 )
@@ -164,11 +152,12 @@ filtered_df = filtered_df[
     (filtered_df['Date'] <= end_date)
 ]
 
-# 3. 选中公司筛选 (应用于图表高亮)
-if selected_full_names:
-    filtered_df = filtered_df[
-        filtered_df['Full_Name'].isin(selected_full_names)
-    ]
+# 3. 选中公司筛选 (仅高亮，不过滤数据，若需要过滤则保留此行，否则注释)
+# if selected_full_names:
+#     filtered_df = filtered_df[filtered_df['Full_Name'].isin(selected_full_names)]
+
+# 为了高亮选中公司，单独处理高亮数据
+highlighted_df = filtered_df[filtered_df['Full_Name'].isin(selected_full_names)] if selected_full_names else None
 
 # -----------------------------------------------------------------------------
 # 6. 主内容区
@@ -205,7 +194,6 @@ else:
     st.warning("No data found for the selected time and sector filters.")
     st.stop()
 
-
 st.markdown("---")
 
 # -----------------------------------------------------------------------------
@@ -217,29 +205,45 @@ tab1, tab2, tab3, tab4 = st.tabs(["📊 Portfolio Composition", "📈 Stock Deep
 with tab1:
     st.subheader("Evolution of Top Holdings (Value & Proportion)")
     
+    # 改用filtered_df，实现时间滑块控制数据范围
     fig_area = px.area(
-        df, 
+        filtered_df, 
         x="Date", 
         y="Value_Billions", 
         color="Logo_Name",
-        title="Portfolio Value by Stock (Top Holdings Only)",
+        title="Portfolio Value by Stock (Filtered by Time & Sector)",
         labels={"Value_Billions": "Value ($ Billions)"},
         template="plotly_white",
         hover_data={"Date": "|%Y-%m-%d"}
     )
+    # 若有高亮公司，调整颜色突出显示
+    if highlighted_df is not None and not highlighted_df.empty:
+        highlight_names = highlighted_df['Logo_Name'].unique()
+        for trace in fig_area.data:
+            if trace.name in highlight_names:
+                trace.line.width = 3  # 高亮线条加粗
+                trace.fill = 'tonextx'  # 保持填充
     fig_area.update_layout(showlegend=True, height=500)
     st.plotly_chart(fig_area, use_container_width=True)
     
     st.subheader("Proportional Changes Over Time")
     fig_bar = px.bar(
-        df, 
+        filtered_df, 
         x="Quarter", 
         y="Percent_Portfolio", 
         color="Logo_Name",
-        title="Relative Portfolio Weight %",
+        title="Relative Portfolio Weight % (Filtered by Time & Sector)",
         barmode="relative",
         template="plotly_white"
     )
+    # 高亮选中公司的柱状图
+    if highlighted_df is not None and not highlighted_df.empty:
+        highlight_names = highlighted_df['Logo_Name'].unique()
+        for trace in fig_bar.data:
+            if trace.name in highlight_names:
+                trace.marker.opacity = 1  # 完全不透明
+            else:
+                trace.marker.opacity = 0.5  # 其他公司半透明
     fig_bar.update_layout(xaxis={'categoryorder':'category ascending'}, height=500)
     st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -275,16 +279,16 @@ with tab2:
             
         st.divider()
         st.subheader("Comparison Tool")
-        logo_name_options = df['Logo_Name'].unique()
-        default_compare = [df[df['Full_Name'] == target_full_name]['Logo_Name'].iloc[0]] if not df[df['Full_Name'] == target_full_name].empty else []
+        logo_name_options = filtered_df['Logo_Name'].unique()  # 仅显示筛选后的公司
+        default_compare = [filtered_df[filtered_df['Full_Name'] == target_full_name]['Logo_Name'].iloc[0]] if not filtered_df[filtered_df['Full_Name'] == target_full_name].empty else []
         if 'The Coca-Cola Company (KO)' in logo_name_options:
             default_compare.append('The Coca-Cola Company (KO)')
         compare_stocks_names = st.multiselect("Compare Holdings (Value)", logo_name_options, default=default_compare[:2])
         if compare_stocks_names:
-            compare_data = df[df['Logo_Name'].isin(compare_stocks_names)]
+            compare_data = filtered_df[filtered_df['Logo_Name'].isin(compare_stocks_names)]
             fig_compare = px.line(
                 compare_data, x="Date", y="Value_Billions", color="Logo_Name",
-                title="Holdings Value Comparison", markers=True
+                title="Holdings Value Comparison (Filtered)", markers=True
             )
             st.plotly_chart(fig_compare, use_container_width=True)
     else:
@@ -298,7 +302,7 @@ with tab3:
     
     fig_sector = px.area(
         sector_data, x="Date", y="Value_Billions", color="Sector",
-        title="Portfolio Value Composition by Sector",
+        title="Portfolio Value Composition by Sector (Filtered)",
         template="plotly_white",
     )
     st.plotly_chart(fig_sector, use_container_width=True)
@@ -307,7 +311,7 @@ with tab3:
     if not latest_sector_data.empty:
         fig_pie = px.pie(
             latest_sector_data, values='Value_Billions', names='Sector',
-            title=f"Sector Allocation ({latest_date_filtered.strftime('%Y Q%q')})",
+            title=f"Sector Allocation ({latest_date_filtered.strftime('%Y Q%q')}) (Filtered)",
             hole=0.4
         )
         st.plotly_chart(fig_pie, use_container_width=True)
@@ -318,7 +322,7 @@ with tab3:
 with tab4:
     st.subheader("📘 Company Reference (Full Name & Real Logo)")
     
-    ref_df = df[['Ticker', 'Full_Name', 'Sector', 'Logo_HTML']].drop_duplicates(subset=['Ticker']).sort_values('Sector')
+    ref_df = filtered_df[['Ticker', 'Full_Name', 'Sector', 'Logo_HTML']].drop_duplicates(subset=['Ticker']).sort_values('Sector')  # 仅显示筛选后的公司
     
     ref_df['Logo & Name'] = ref_df.apply(
         lambda row: f"{row['Logo_HTML']} <span class='ref-ticker-col'>{row['Ticker']}</span>: {row['Full_Name']}", axis=1
@@ -326,7 +330,7 @@ with tab4:
     
     final_ref_df = ref_df[['Logo & Name', 'Sector']]
     
-    st.markdown("以下是数据中出现过的所有核心投资公司及其全名、行业和真实 Logo：", unsafe_allow_html=True)
+    st.markdown("以下是筛选后的数据中出现的公司及其信息：", unsafe_allow_html=True)
     st.write(final_ref_df.to_html(escape=False, index=False), unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
