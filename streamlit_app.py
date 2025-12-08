@@ -113,9 +113,17 @@ def load_data():
     df['Logo_Name'] = df.apply(lambda row: f"{row['Full_Name']} ({row['Ticker']})", axis=1)
     
     df = df.sort_values(by=['Date', 'Value_Billions'], ascending=[True, False])
-    return df, full_name_map, get_google_logo_url, sector_map
+    # 原始的返回 (出错点):
+    # return df, full_name_map, get_google_logo_url, sector_map
+    
+    # 修正后的返回:
+    return df, full_name_map, sector_map
+    
+# 原始的调用 (出错点):
+# df, full_name_map, get_google_logo_url, sector_map = load_data()
 
-df, full_name_map, get_google_logo_url, sector_map = load_data()
+# 修正后的调用:
+df, full_name_map, sector_map = load_data()
 
 # -----------------------------------------------------------------------------
 # 4. Sidebar 控制区
