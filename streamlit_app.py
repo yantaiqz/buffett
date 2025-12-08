@@ -21,6 +21,14 @@ st.markdown("""
     h1 {font-family: 'Helvetica Neue', sans-serif; font-weight: 700; letter-spacing: -1px;}
     h2 {font-family: 'Helvetica Neue', sans-serif; font-weight: 600; letter-spacing: -0.5px; color: #333;}
     .stMetric {background-color: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee;}
+    
+    /* 优化表格中 Logo 的显示 */
+    table img {
+        border-radius: 5px;
+        vertical-align: middle;
+        margin-right: 8px;
+    }
+    .ref-ticker-col {font-weight: bold; color: #3498DB;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -29,20 +37,47 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 @st.cache_data
 def load_data():
-    # 行业映射
-    sector_map = {
-        'AAPL': 'Technology', 'IBM': 'Technology', 'HPQ': 'Technology', 'SNOW': 'Technology', 'GOOGL': 'Technology', 'VRSN': 'Technology', 'ATVI': 'Technology',
-        'BAC': 'Financials', 'AXP': 'Financials', 'WFC': 'Financials', 'USB': 'Financials', 'C': 'Financials', 'JPM': 'Financials', 'MCO': 'Financials', 'BK': 'Financials', 'CB': 'Financials', 'MA': 'Financials', 'V': 'Financials', 'WSC': 'Financials', 'MTB': 'Financials',
-        'KO': 'Consumer Staples', 'KHC': 'Consumer Staples', 'KFT': 'Consumer Staples', 'PG': 'Consumer Staples', 'WMT': 'Consumer Staples', 'KR': 'Consumer Staples', 'COST': 'Consumer Staples', 'BUD': 'Consumer Staples',
-        'G': 'Consumer Discretionary', 'WPO': 'Comm/Media', 'DPZ': 'Consumer Discretionary', 'DIS': 'Comm/Media', 'CHTR': 'Comm/Media', 'PARA': 'Comm/Media', 'VZ': 'Comm/Media',
-        'CVX': 'Energy', 'OXY': 'Energy', 'XOM': 'Energy', 'COP': 'Energy', 'PSX': 'Energy',
-        'BNI': 'Industrials', 'DAL': 'Industrials', 'LUV': 'Industrials', 'UAL': 'Industrials', 'AAL': 'Industrials', 'POOL': 'Consumer Discretionary',
-        'DVA': 'Healthcare', 'JNJ': 'Healthcare', 'ABBV': 'Healthcare', 'MRK': 'Healthcare',
-        'HRB': 'Consumer Discretionary'
+    # 核心映射数据：新增全名和 Logo URL 映射
+    full_name_map = {
+        'AAPL': 'Apple Inc.', 'AXP': 'American Express Company', 'BAC': 'Bank of America Corporation', 
+        'KO': 'The Coca-Cola Company', 'CVX': 'Chevron Corporation', 'OXY': 'Occidental Petroleum Corporation', 
+        'MCO': 'Moody\'s Corporation', 'KHC': 'The Kraft Heinz Company', 'CB': 'Chubb Limited', 
+        'GOOGL': 'Alphabet Inc. (Google)', 'DVA': 'DaVita Inc.', 'KR': 'The Kroger Co.', 
+        'DPZ': 'Domino\'s Pizza, Inc.', 'POOL': 'Pool Corporation', 'IBM': 'International Business Machines Corp.',
+        'WFC': 'Wells Fargo & Company', 'PG': 'The Procter & Gamble Company', 'VZ': 'Verizon Communications Inc.',
+        'USB': 'U.S. Bancorp', 'JPM': 'JPMorgan Chase & Co.', 'C': 'Citigroup Inc.', 
+        'V': 'Visa Inc.', 'MA': 'Mastercard Incorporated', 'AMZN': 'Amazon.com, Inc.', 
+        'ATVI': 'Activision Blizzard', 'HPQ': 'HP Inc.', 'PARA': 'Paramount Global', 
+        'WPO': 'The Washington Post Company', 'G': 'The Gillette Company', 'COP': 'ConocoPhillips',
+        'KFT': 'Kraft Foods', 'WSC': 'Wesco Financial', 'BNI': 'BNSF Railway Co.', 'PSX': 'Phillips 66',
+        'TSM': 'Taiwan Semiconductor (TSM)', 'UNH': 'UnitedHealth Group' 
+    }
+    
+    # 使用公共可访问的 Logo URL (核心公司)
+    logo_url_map = {
+        'AAPL': 'https://cdn.worldvectorlogo.com/logos/apple-1.svg',
+        'KO': 'https://cdn.worldvectorlogo.com/logos/coca-cola-2021.svg',
+        'BAC': 'https://cdn.worldvectorlogo.com/logos/bank-of-america-2.svg',
+        'AXP': 'https://cdn.worldvectorlogo.com/logos/american-express-1.svg',
+        'WFC': 'https://cdn.worldvectorlogo.com/logos/wells-fargo-1.svg',
+        'CVX': 'https://cdn.worldvectorlogo.com/logos/chevron-5.svg',
+        'GOOGL': 'https://cdn.worldvectorlogo.com/logos/google-g-2015.svg',
+        'OXY': 'https://cdn.worldvectorlogo.com/logos/occidental-petroleum.svg',
+        'CB': 'https://cdn.worldvectorlogo.com/logos/chubb-1.svg',
+        'MCO': 'https://cdn.worldvectorlogo.com/logos/moody-s-corporation.svg',
     }
 
-    # 原始数据列表 (使用简化值，单位为十亿，以便在代码中减少字符数)
-    # 格式: ('Quarter', 'Ticker', Shares (M), Value ($B), 'Percent')
+    sector_map = {
+        'AAPL': 'Technology', 'IBM': 'Technology', 'HPQ': 'Technology', 'SNOW': 'Technology', 'GOOGL': 'Technology', 'VRSN': 'Technology', 'ATVI': 'Technology', 'TSM': 'Technology',
+        'BAC': 'Financials', 'AXP': 'Financials', 'WFC': 'Financials', 'USB': 'Financials', 'C': 'Financials', 'JPM': 'Financials', 'MCO': 'Financials', 'BK': 'Financials', 'CB': 'Financials', 'MA': 'Financials', 'V': 'Financials', 'WSC': 'Financials', 'MTB': 'Financials',
+        'KO': 'Consumer Staples', 'KHC': 'Consumer Staples', 'KFT': 'Consumer Staples', 'PG': 'Consumer Staples', 'WMT': 'Consumer Staples', 'KR': 'Consumer Staples', 'COST': 'Consumer Staples', 'BUD': 'Consumer Staples',
+        'G': 'Consumer Discretionary', 'WPO': 'Comm/Media', 'DPZ': 'Consumer Discretionary', 'DIS': 'Comm/Media', 'CHTR': 'Comm/Media', 'PARA': 'Comm/Media', 'VZ': 'Comm/Media', 'POOL': 'Consumer Discretionary',
+        'CVX': 'Energy', 'OXY': 'Energy', 'XOM': 'Energy', 'COP': 'Energy', 'PSX': 'Energy',
+        'BNI': 'Industrials', 'DAL': 'Industrials', 'LUV': 'Industrials', 'UAL': 'Industrials', 'AAL': 'Industrials',
+        'DVA': 'Healthcare', 'JNJ': 'Healthcare', 'ABBV': 'Healthcare', 'MRK': 'Healthcare', 'UNH': 'Healthcare',
+        'HRB': 'Consumer Discretionary'
+    }
+    
     raw_data = [
         ('2025 Q3', 'AAPL', 238.0, 60.6, 22.7), ('2025 Q3', 'AXP', 151.6, 50.3, 18.8), ('2025 Q3', 'BAC', 568.3, 29.3, 11.0), ('2025 Q3', 'KO', 400.0, 26.5, 9.9), ('2025 Q3', 'CVX', 122.1, 18.9, 7.1), ('2025 Q3', 'OXY', 265.3, 13.0, 4.9), ('2025 Q3', 'MCO', 24.7, 11.0, 4.1), ('2025 Q3', 'KHC', 325.6, 10.5, 3.9), ('2025 Q3', 'CB', 31.3, 8.8, 3.3), ('2025 Q3', 'GOOGL', 17.8, 4.3, 1.6), ('2025 Q3', 'DVA', 32.2, 4.2, 1.6), ('2025 Q3', 'KR', 50.0, 2.8, 1.0), ('2025 Q3', 'DPZ', 3.0, 1.3, 0.5), ('2025 Q3', 'POOL', 3.5, 1.1, 0.4),
         ('2024 Q4', 'AAPL', 300.0, 69.9, 25.0), ('2024 Q4', 'AXP', 151.6, 48.2, 17.3), ('2024 Q4', 'BAC', 700.0, 31.5, 11.3), ('2024 Q4', 'KO', 400.0, 25.2, 9.0), ('2024 Q4', 'CVX', 118.6, 18.3, 6.5), ('2024 Q4', 'OXY', 255.0, 14.8, 5.3), ('2024 Q4', 'KHC', 325.6, 11.1, 3.9), ('2024 Q4', 'MCO', 24.7, 10.6, 3.8), ('2024 Q4', 'CB', 27.0, 7.6, 2.7), ('2024 Q4', 'DVA', 36.1, 4.5, 1.6), ('2024 Q4', 'C', 55.2, 3.5, 1.2), ('2024 Q4', 'KR', 50.0, 2.7, 0.9),
@@ -60,7 +95,12 @@ def load_data():
     # DataFrame 初始化
     df = pd.DataFrame(raw_data, columns=['Quarter', 'Ticker', 'Shares_Millions', 'Value_Billions', 'Percent_Portfolio'])
     
-    # 将季度字符串转换为日期对象
+    # helper function to generate logo HTML
+    def get_logo_html(ticker):
+        url = logo_url_map.get(ticker, 'https://via.placeholder.com/30/505050/FFFFFF?text=BRK') # Generic BRK Placeholder
+        return f"<img src='{url}' width='30' height='30' style='vertical-align: middle; margin-right: 8px;'>"
+    
+    # 数据清洗和映射
     def parse_quarter(q_str):
         year, q = q_str.split(' ')
         if q == 'Q1': return f"{year}-03-31"
@@ -70,19 +110,23 @@ def load_data():
     
     df['Date'] = pd.to_datetime(df['Quarter'].apply(parse_quarter))
     df['Sector'] = df['Ticker'].map(sector_map).fillna('Others')
+    df['Full_Name'] = df['Ticker'].map(full_name_map)
+    df['Logo_HTML'] = df['Ticker'].apply(get_logo_html)
     
-    # 排序
+    # 标注列：用于图表图例和悬停信息 (使用全名+代码)
+    df['Logo_Name'] = df.apply(lambda row: f"{row['Full_Name']} ({row['Ticker']})", axis=1)
+    
     df = df.sort_values(by=['Date', 'Value_Billions'], ascending=[True, False])
-    return df
+    return df, full_name_map, logo_url_map, sector_map
 
-df = load_data()
+df, full_name_map, logo_url_map, sector_map = load_data()
 
 # -----------------------------------------------------------------------------
-# 3. Sidebar 控制区
+# 4. Sidebar 控制区
 # -----------------------------------------------------------------------------
 st.sidebar.header("⚙️ Controls")
 
-# 时间线滑块 (新增部分)
+# 时间线滑块
 min_date = df['Date'].min().to_pydatetime()
 max_date = df['Date'].max().to_pydatetime()
 
@@ -95,16 +139,16 @@ date_range = st.sidebar.slider(
 )
 start_date, end_date = date_range
 
-# 行业筛选器 (沿用部分)
+# 行业筛选器
 all_sectors = sorted(df['Sector'].unique())
 selected_sectors = st.sidebar.multiselect("🏷️ Filter by Sector", all_sectors, default=all_sectors)
 
-# 公司筛选器 (沿用部分)
-all_tickers = sorted(df['Ticker'].unique())
-selected_tickers = st.sidebar.multiselect("🔍 Highlight Specific Stocks", all_tickers, default=[])
+# 公司筛选器 (使用全名)
+all_full_names = sorted(df['Full_Name'].unique())
+selected_full_names = st.sidebar.multiselect("🔍 Highlight Specific Stocks", all_full_names, default=[])
 
 # -----------------------------------------------------------------------------
-# 4. 数据筛选应用
+# 5. 数据筛选应用
 # -----------------------------------------------------------------------------
 # 1. 行业筛选
 filtered_df = df[df['Sector'].isin(selected_sectors)]
@@ -115,28 +159,41 @@ filtered_df = filtered_df[
     (filtered_df['Date'] <= end_date)
 ]
 
+# 3. 选中公司筛选 (应用于图表高亮)
+if selected_full_names:
+    filtered_df = filtered_df[
+        filtered_df['Full_Name'].isin(selected_full_names)
+    ]
+
 # -----------------------------------------------------------------------------
-# 5. 主内容区
+# 6. 主内容区
 # -----------------------------------------------------------------------------
 st.title("Berkshire Hathaway Portfolio Evolution")
 st.caption("A 25-year interactive visualization of Warren Buffett's investment strategy (2000-2025).")
 
-# --- Key Metrics (Top Row) ---
-# 确保在筛选后仍然有数据
 if not filtered_df.empty:
     latest_date_filtered = filtered_df['Date'].max()
     latest_data_filtered = filtered_df[filtered_df['Date'] == latest_date_filtered]
-    top_holding = latest_data_filtered.iloc[0]
-
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Start Period", start_date.strftime("%Y Q%q"))
-    with col2:
-        st.metric("End Period", end_date.strftime("%Y Q%q"))
-    with col3:
-        st.metric("Top Holding", top_holding['Ticker'], f"{top_holding['Percent_Portfolio']}%")
-    with col4:
-        st.metric("Top Sector", latest_data_filtered.groupby('Sector')['Value_Billions'].sum().idxmax())
+    
+    if not latest_data_filtered.empty:
+        top_holding = latest_data_filtered.sort_values(by='Value_Billions', ascending=False).iloc[0]
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Start Period", start_date.strftime("%Y Q%q"))
+        with col2:
+            st.metric("End Period", end_date.strftime("%Y Q%q"))
+        with col3:
+            # 使用 Full Name and Ticker
+            st.metric("Top Holding (Filtered)", top_holding['Logo_Name'], f"{top_holding['Percent_Portfolio']}%")
+        with col4:
+            top_sector_value = latest_data_filtered.groupby('Sector')['Value_Billions'].sum()
+            top_sector = top_sector_value.idxmax()
+            top_sector_percent = top_sector_value.max() / top_sector_value.sum() * 100
+            st.metric("Top Sector", top_sector, f"{top_sector_percent:.1f}%")
+    else:
+        st.warning("No data found for the latest selected period. Adjust filters.")
+        st.stop()
 else:
     st.warning("No data found for the selected time and sector filters.")
     st.stop()
@@ -145,20 +202,20 @@ else:
 st.markdown("---")
 
 # -----------------------------------------------------------------------------
-# 6. 可视化 Tab 页
+# 7. 可视化 Tab 页
 # -----------------------------------------------------------------------------
-tab1, tab2, tab3 = st.tabs(["📊 Portfolio Composition", "📈 Stock Deep Dive", "🧩 Sector Shift"])
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Portfolio Composition", "📈 Stock Deep Dive", "🧩 Sector Shift", "📘 Company Reference"])
 
 # --- Tab 1: 组合构成 (Macro) ---
 with tab1:
     st.subheader("Evolution of Top Holdings (Value & Proportion)")
     
-    # 图表 1: 堆叠面积图 (估值绝对值)
+    # 使用 Logo_Name 作为 color, 在悬停和图例中显示全名
     fig_area = px.area(
-        filtered_df, 
+        df, 
         x="Date", 
         y="Value_Billions", 
-        color="Ticker",
+        color="Logo_Name",
         title="Portfolio Value by Stock (Top Holdings Only)",
         labels={"Value_Billions": "Value ($ Billions)"},
         template="plotly_white",
@@ -167,13 +224,12 @@ with tab1:
     fig_area.update_layout(showlegend=True, height=500)
     st.plotly_chart(fig_area, use_container_width=True)
     
-    # 图表 2: 100% 堆叠条形图 (比例变化)
     st.subheader("Proportional Changes Over Time")
     fig_bar = px.bar(
-        filtered_df, 
+        df, 
         x="Quarter", 
         y="Percent_Portfolio", 
-        color="Ticker",
+        color="Logo_Name",
         title="Relative Portfolio Weight %",
         barmode="relative",
         template="plotly_white"
@@ -185,10 +241,10 @@ with tab1:
 with tab2:
     st.subheader("Single Stock Analysis")
     
-    stock_options_filtered = sorted(filtered_df['Ticker'].unique())
-    target_stock = st.selectbox("Select a Company to Analyze", stock_options_filtered, index=0)
+    stock_options_filtered = sorted(filtered_df['Full_Name'].unique())
+    target_full_name = st.selectbox("Select a Company to Analyze", stock_options_filtered, index=0)
     
-    stock_data = filtered_df[filtered_df['Ticker'] == target_stock].sort_values('Date')
+    stock_data = filtered_df[filtered_df['Full_Name'] == target_full_name].sort_values('Date')
     
     c1, c2 = st.columns(2)
     
@@ -196,7 +252,7 @@ with tab2:
         # 持仓市值变化
         fig_stock_val = px.line(
             stock_data, x='Date', y='Value_Billions', markers=True,
-            title=f"{target_stock}: Market Value History ($B)",
+            title=f"{target_full_name}: Market Value History ($B)",
             color_discrete_sequence=['#2E86C1']
         )
         fig_stock_val.update_yaxes(rangemode="tozero")
@@ -206,7 +262,7 @@ with tab2:
         # 持仓股数变化
         fig_stock_share = px.line(
             stock_data, x='Date', y='Shares_Millions', markers=True,
-            title=f"{target_stock}: Shares Held History (Millions)",
+            title=f"{target_full_name}: Shares Held History (Millions)",
             color_discrete_sequence=['#E74C3C']
         )
         fig_stock_share.update_yaxes(rangemode="tozero")
@@ -215,11 +271,12 @@ with tab2:
     # 对比视图
     st.divider()
     st.subheader("Comparison Tool")
-    compare_stocks = st.multiselect("Compare Holdings (Value)", stock_options_filtered, default=[target_stock])
-    if compare_stocks:
-        compare_data = filtered_df[filtered_df['Ticker'].isin(compare_stocks)]
+    # 使用 Logo_Name 进行比较
+    compare_stocks_names = st.multiselect("Compare Holdings (Value)", df['Logo_Name'].unique(), default=[df[df['Full_Name'] == target_full_name]['Logo_Name'].iloc[0], 'The Coca-Cola Company (KO)'])
+    if compare_stocks_names:
+        compare_data = df[df['Logo_Name'].isin(compare_stocks_names)]
         fig_compare = px.line(
-            compare_data, x="Date", y="Value_Billions", color="Ticker",
+            compare_data, x="Date", y="Value_Billions", color="Logo_Name",
             title="Holdings Value Comparison", markers=True
         )
         st.plotly_chart(fig_compare, use_container_width=True)
@@ -246,6 +303,26 @@ with tab3:
         hole=0.4
     )
     st.plotly_chart(fig_pie, use_container_width=True)
+
+# --- Tab 4: 公司参考 (Reference) ---
+with tab4:
+    st.subheader("📘 Company Reference (Full Name & Real Logo)")
+    
+    # 整理用于展示的参考表
+    ref_df = df[['Ticker', 'Full_Name', 'Sector', 'Logo_HTML']].drop_duplicates(subset=['Ticker']).sort_values('Sector')
+    
+    # 创建 Logo + Ticker + Name 组合列
+    ref_df['Logo & Name'] = ref_df.apply(
+        lambda row: f"{row['Logo_HTML']} <span class='ref-ticker-col'>{row['Ticker']}</span>: {row['Full_Name']}", axis=1
+        )
+    
+    # 最终输出的表格
+    final_ref_df = ref_df[['Logo & Name', 'Sector']]
+    
+    # 使用 Markdown 渲染包含 HTML 的表格
+    st.markdown("以下是数据中出现过的所有核心投资公司及其全名、行业和真实 Logo：", unsafe_allow_html=True)
+    st.write(final_ref_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
 
 # -----------------------------------------------------------------------------
 # Footer
