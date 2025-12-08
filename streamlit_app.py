@@ -3,6 +3,21 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+import requests
+import base64
+
+# -----------------------------------------------------------------------------
+# 新增：将图片URL转换为Base64编码的函数
+# -----------------------------------------------------------------------------
+def get_base64_from_url(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return base64.b64encode(response.content).decode('utf-8')
+    except:
+        # 若获取失败，使用默认占位符的Base64（30x30蓝色方块）
+        default_png = base64.b64encode(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x1e\x00\x00\x00\x1e\x08\x06\x00\x00\x00\x7f\x7b\xfa\x5a\x00\x00\x00\x04sBIT\x08\x08\x08\x08|\x08d\x88\x00\x00\x00\x19tEXtSoftware\x00Adobe ImageReady\x00\x00\x00\x00IDATx\x9c\xec\xdd\x07\x00\x00\x00\x02\x00\x01\x8d\x1f\x10\x00\x00\x00\x00IEND\xaeB`\x82').decode('utf-8')
+        return default_png
 
 # -----------------------------------------------------------------------------
 # 1. 配置页面 (Silicon Valley Minimalist Style)
@@ -14,7 +29,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 自定义CSS以实现更干净的界面
+# 自定义CSS（新增：调整图例区域的样式）
 st.markdown("""
 <style>
     .block-container {padding-top: 2rem; padding-bottom: 2rem;}
@@ -31,6 +46,28 @@ st.markdown("""
         height: 30px;
     }
     .ref-ticker-col {font-weight: bold; color: #3498DB;}
+    
+    /* 自定义图例的容器样式（若使用HTML图例） */
+    .custom-legend {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        z-index: 100;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+    .legend-item img {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -72,69 +109,28 @@ def load_data():
         'DVA': 'Healthcare', 'JNJ': 'Healthcare', 'ABBV': 'Healthcare', 'MRK': 'Healthcare', 'UNH': 'Healthcare',
     }
 
-    # 使用Google Favicon API获取logo URL
-    # Google Favicon API格式: https://www.google.com/s2/favicons?domain={域名}&sz={尺寸}
-    def get_google_logo_url(ticker):
-        # 构建公司域名（基于ticker推测常见域名，若无法推测则使用通用占位符）
+    # 使用Google Favicon API获取logo URL，并转换为Base64
+    def get_google_logo_info(ticker):
         domain_map = {
-            'AAPL': 'apple.com',
-            'AXP': 'americanexpress.com',
-            'BAC': 'bankofamerica.com',
-            'KO': 'coca-colacompany.com',
-            'CVX': 'chevron.com',
-            'OXY': 'oxy.com',
-            'MCO': 'moodys.com',
-            'KHC': 'kraftheinzcompany.com',
-            'CB': 'chubb.com',
-            'GOOGL': 'google.com',
-            'DVA': 'davita.com',
-            'KR': 'kroger.com',
-            'DPZ': 'dominos.com',
-            'POOL': 'poolcorp.com',
-            'IBM': 'ibm.com',
-            'WFC': 'wellsfargo.com',
-            'PG': 'pg.com',
-            'VZ': 'verizon.com',
-            'USB': 'usbank.com',
-            'JPM': 'jpmorganchase.com',
-            'C': 'citi.com',
-            'V': 'visa.com',
-            'MA': 'mastercard.com',
-            'AMZN': 'amazon.com',
-            'ATVI': 'activisionblizzard.com',
-            'HPQ': 'hp.com',
-            'PARA': 'paramount.com',
-            'WPO': 'washingtonpost.com',
-            'G': 'gillette.com',
-            'COP': 'conocophillips.com',
-            'KFT': 'kraftfoods.com',
-            'WSC': 'wesco.com',
-            'BNI': 'bnsf.com',
-            'PSX': 'phillips66.com',
-            'TSM': 'tsmc.com',
-            'UNH': 'unitedhealthgroup.com',
-            'JNJ': 'jnj.com',
-            'SNOW': 'snowflake.com',
-            'VRSN': 'verisign.com',
-            'BK': 'bnymellon.com',
-            'WMT': 'walmart.com',
-            'COST': 'costco.com',
-            'BUD': 'ab-inbev.com',
-            'DIS': 'disney.com',
-            'CHTR': 'charter.com',
-            'XOM': 'exxonmobil.com',
-            'DAL': 'delta.com',
-            'LUV': 'southwest.com',
-            'UAL': 'united.com',
-            'AAL': 'aa.com',
-            'ABBV': 'abbvie.com',
-            'MRK': 'merck.com',
-            'HRB': 'hrblock.com',
-            'MTB': 'mtb.com'
+            'AAPL': 'apple.com', 'AXP': 'americanexpress.com', 'BAC': 'bankofamerica.com', 'KO': 'coca-colacompany.com', 
+            'CVX': 'chevron.com', 'OXY': 'oxy.com', 'MCO': 'moodys.com', 'KHC': 'kraftheinzcompany.com', 'CB': 'chubb.com', 
+            'GOOGL': 'google.com', 'DVA': 'davita.com', 'KR': 'kroger.com', 'DPZ': 'dominos.com', 'POOL': 'poolcorp.com', 
+            'IBM': 'ibm.com', 'WFC': 'wellsfargo.com', 'PG': 'pg.com', 'VZ': 'verizon.com', 'USB': 'usbank.com', 
+            'JPM': 'jpmorganchase.com', 'C': 'citi.com', 'V': 'visa.com', 'MA': 'mastercard.com', 'AMZN': 'amazon.com', 
+            'ATVI': 'activisionblizzard.com', 'HPQ': 'hp.com', 'PARA': 'paramount.com', 'WPO': 'washingtonpost.com', 
+            'G': 'gillette.com', 'COP': 'conocophillips.com', 'KFT': 'kraftfoods.com', 'WSC': 'wesco.com', 
+            'BNI': 'bnsf.com', 'PSX': 'phillips66.com', 'TSM': 'tsmc.com', 'UNH': 'unitedhealthgroup.com', 
+            'JNJ': 'jnj.com', 'SNOW': 'snowflake.com', 'VRSN': 'verisign.com', 'BK': 'bnymellon.com', 
+            'WMT': 'walmart.com', 'COST': 'costco.com', 'BUD': 'ab-inbev.com', 'DIS': 'disney.com', 
+            'CHTR': 'charter.com', 'XOM': 'exxonmobil.com', 'DAL': 'delta.com', 'LUV': 'southwest.com', 
+            'UAL': 'united.com', 'AAL': 'aa.com', 'ABBV': 'abbvie.com', 'MRK': 'merck.com', 
+            'HRB': 'hrblock.com', 'MTB': 'mtb.com'
         }
-        domain = domain_map.get(ticker, 'google.com')  # 默认为google.com
-        size = 30  # Logo尺寸（像素）
-        return f"https://www.google.com/s2/favicons?domain={domain}&sz={size}"
+        domain = domain_map.get(ticker, 'google.com')
+        size = 30
+        url = f"https://www.google.com/s2/favicons?domain={domain}&sz={size}"
+        b64 = get_base64_from_url(url)
+        return url, b64  # 返回URL和Base64编码
     
     raw_data = [
         ('2025 Q3', 'AAPL', 238.0, 60.6, 22.7), ('2025 Q3', 'AXP', 151.6, 50.3, 18.8), ('2025 Q3', 'BAC', 568.3, 29.3, 11.0), ('2025 Q3', 'KO', 400.0, 26.5, 9.9), ('2025 Q3', 'CVX', 122.1, 18.9, 7.1), ('2025 Q3', 'OXY', 265.3, 13.0, 4.9), ('2025 Q3', 'MCO', 24.7, 11.0, 4.1), ('2025 Q3', 'KHC', 325.6, 10.5, 3.9), ('2025 Q3', 'CB', 31.3, 8.8, 3.3), ('2025 Q3', 'GOOGL', 17.8, 4.3, 1.6), ('2025 Q3', 'DVA', 32.2, 4.2, 1.6), ('2025 Q3', 'KR', 50.0, 2.8, 1.0), ('2025 Q3', 'DPZ', 3.0, 1.3, 0.5), ('2025 Q3', 'POOL', 3.5, 1.1, 0.4),
@@ -165,8 +161,11 @@ def load_data():
     df['Sector'] = df['Ticker'].map(sector_map).fillna('Others')
     df['Full_Name'] = df['Ticker'].map(full_name_map).fillna(df['Ticker'])
     
-    # 生成Logo的img标签（直接使用URL，而非HTML字符串，后续在表格中处理）
-    df['Logo_URL'] = df['Ticker'].apply(lambda t: get_google_logo_url(t))
+    # 获取Logo的URL和Base64编码
+    logo_info = df['Ticker'].apply(get_google_logo_info)
+    df['Logo_URL'] = [x[0] for x in logo_info]
+    df['Logo_B64'] = [x[1] for x in logo_info]
+    
     # 构建Logo的HTML标签
     df['Logo_HTML'] = df['Logo_URL'].apply(lambda url: f'<img src="{url}" alt="logo" width="30" height="30">')
     
@@ -179,11 +178,100 @@ def load_data():
 df, full_name_map, sector_map = load_data()
 
 # -----------------------------------------------------------------------------
-# 4. Sidebar 控制区
+# 新增：构建带Logo的自定义图例函数
+# -----------------------------------------------------------------------------
+def add_custom_legend(fig, df, chart_type="area"):
+    """
+    为Plotly图表添加带Logo的自定义图例
+    :param fig: Plotly图表对象
+    :param df: 数据DataFrame
+    :param chart_type: 图表类型（area/bar）
+    :return: 处理后的图表对象
+    """
+    # 隐藏原生图例
+    fig.update_layout(showlegend=False)
+    
+    # 获取唯一的Logo_Name和对应的颜色、Base64编码
+    unique_names = df['Logo_Name'].unique()
+    color_map = {}
+    b64_map = {}
+    
+    # 提取Plotly自动分配的颜色（按Logo_Name排序）
+    if chart_type == "area":
+        for i, name in enumerate(unique_names):
+            if i < len(fig.data):
+                color_map[name] = fig.data[i].fillcolor if hasattr(fig.data[i], 'fillcolor') else fig.data[i].line.color
+    else:  # bar
+        for i, name in enumerate(unique_names):
+            if i < len(fig.data):
+                color_map[name] = fig.data[i].marker.color
+    
+    # 提取Base64编码
+    for name in unique_names:
+        b64_map[name] = df[df['Logo_Name'] == name]['Logo_B64'].iloc[0]
+    
+    # 自定义图例的位置和大小（右侧，从上到下排列）
+    legend_x = 1.02  # 图例在图表右侧
+    legend_y_start = 0.95  # 图例顶部起始位置
+    item_height = 0.04  # 每个图例项的高度
+    logo_size = 20  # Logo大小（像素）
+    
+    for i, name in enumerate(unique_names):
+        y_pos = legend_y_start - i * item_height
+        if y_pos < 0:
+            break  # 超出图表底部则停止
+        
+        # 1. 添加Logo图片（Base64编码）
+        fig.add_layout_image(
+            dict(
+                source=f"data:image/png;base64,{b64_map[name]}",
+                x=legend_x,
+                y=y_pos,
+                xref="paper",
+                yref="paper",
+                sizex=logo_size/fig.layout.width*2,  # 适配图表宽度
+                sizey=logo_size/fig.layout.height*2,  # 适配图表高度
+                xanchor="left",
+                yanchor="middle"
+            )
+        )
+        
+        # 2. 添加颜色方块（模拟图例的颜色标识）
+        fig.add_shape(
+            type="rect",
+            x0=legend_x + 0.03,
+            y0=y_pos - item_height/4,
+            x1=legend_x + 0.04,
+            y1=y_pos + item_height/4,
+            xref="paper",
+            yref="paper",
+            fillcolor=color_map.get(name, '#000000'),
+            line_width=0
+        )
+        
+        # 3. 添加文本标签
+        fig.add_annotation(
+            x=legend_x + 0.05,
+            y=y_pos,
+            text=name,
+            xref="paper",
+            yref="paper",
+            xanchor="left",
+            yanchor="middle",
+            font=dict(size=10),
+            showarrow=False
+        )
+    
+    # 调整图表右侧边距，为自定义图例留出空间
+    fig.update_layout(margin=dict(right=max(200, len(unique_names)*20)))
+    
+    return fig
+
+# -----------------------------------------------------------------------------
+# 4. Sidebar 控制区（保持不变）
 # -----------------------------------------------------------------------------
 st.sidebar.header("⚙️ Controls")
 
-# 时间线滑块
 min_date = df['Date'].min().to_pydatetime()
 max_date = df['Date'].max().to_pydatetime()
 
@@ -196,35 +284,21 @@ date_range = st.sidebar.slider(
 )
 start_date, end_date = date_range
 
-# 行业筛选器
 all_sectors = sorted(df['Sector'].unique())
 selected_sectors = st.sidebar.multiselect("🏷️ Filter by Sector", all_sectors, default=all_sectors)
 
-# 公司筛选器 (使用全名，排除NaN值)
 all_full_names = sorted([name for name in df['Full_Name'].unique() if pd.notna(name)])
 selected_full_names = st.sidebar.multiselect("🔍 Highlight Specific Stocks", all_full_names, default=[])
 
 # -----------------------------------------------------------------------------
-# 5. 数据筛选应用
+# 5. 数据筛选应用（保持不变）
 # -----------------------------------------------------------------------------
-# 1. 行业筛选
 filtered_df = df[df['Sector'].isin(selected_sectors)]
-
-# 2. 时间筛选
-filtered_df = filtered_df[
-    (filtered_df['Date'] >= start_date) & 
-    (filtered_df['Date'] <= end_date)
-]
-
-# 3. 选中公司筛选 (仅高亮，不过滤数据，若需要过滤则保留此行，否则注释)
-# if selected_full_names:
-#     filtered_df = filtered_df[filtered_df['Full_Name'].isin(selected_full_names)]
-
-# 为了高亮选中公司，单独处理高亮数据
+filtered_df = filtered_df[(filtered_df['Date'] >= start_date) & (filtered_df['Date'] <= end_date)]
 highlighted_df = filtered_df[filtered_df['Full_Name'].isin(selected_full_names)] if selected_full_names else None
 
 # -----------------------------------------------------------------------------
-# 6. 主内容区
+# 6. 主内容区（保持不变）
 # -----------------------------------------------------------------------------
 st.title("Berkshire Hathaway Portfolio Evolution")
 st.caption("A 25-year interactive visualization of Warren Buffett's investment strategy (2000-2025).")
@@ -261,7 +335,7 @@ else:
 st.markdown("---")
 
 # -----------------------------------------------------------------------------
-# 7. 可视化 Tab 页
+# 7. 可视化 Tab 页（修改Tab1的图表，添加自定义图例）
 # -----------------------------------------------------------------------------
 tab1, tab2, tab3, tab4 = st.tabs(["📊 Portfolio Composition", "📈 Stock Deep Dive", "🧩 Sector Shift", "📘 Company Reference"])
 
@@ -269,7 +343,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["📊 Portfolio Composition", "📈 Stock Deep
 with tab1:
     st.subheader("Evolution of Top Holdings (Value & Proportion)")
     
-    # 改用filtered_df，实现时间滑块控制数据范围
+    # Area Chart（添加自定义图例）
     fig_area = px.area(
         filtered_df, 
         x="Date", 
@@ -280,17 +354,13 @@ with tab1:
         template="plotly_white",
         hover_data={"Date": "|%Y-%m-%d"}
     )
-    # 若有高亮公司，调整颜色突出显示
-    if highlighted_df is not None and not highlighted_df.empty:
-        highlight_names = highlighted_df['Logo_Name'].unique()
-        for trace in fig_area.data:
-            if trace.name in highlight_names:
-                trace.line.width = 3  # 高亮线条加粗
-                trace.fill = 'tonextx'  # 保持填充
-    fig_area.update_layout(showlegend=True, height=500)
+    fig_area.update_layout(showlegend=False, height=600)  # 增加高度以容纳图例
+    fig_area = add_custom_legend(fig_area, filtered_df, chart_type="area")
     st.plotly_chart(fig_area, use_container_width=True)
     
     st.subheader("Proportional Changes Over Time")
+    
+    # Bar Chart（添加自定义图例）
     fig_bar = px.bar(
         filtered_df, 
         x="Quarter", 
@@ -300,15 +370,8 @@ with tab1:
         barmode="relative",
         template="plotly_white"
     )
-    # 高亮选中公司的柱状图
-    if highlighted_df is not None and not highlighted_df.empty:
-        highlight_names = highlighted_df['Logo_Name'].unique()
-        for trace in fig_bar.data:
-            if trace.name in highlight_names:
-                trace.marker.opacity = 1  # 完全不透明
-            else:
-                trace.marker.opacity = 0.5  # 其他公司半透明
-    fig_bar.update_layout(xaxis={'categoryorder':'category ascending'}, height=500)
+    fig_bar.update_layout(xaxis={'categoryorder':'category ascending'}, height=600, showlegend=False)
+    fig_bar = add_custom_legend(fig_bar, filtered_df, chart_type="bar")
     st.plotly_chart(fig_bar, use_container_width=True)
 
 # --- Tab 2: 单个股票深度分析 (Micro) ---
@@ -343,7 +406,7 @@ with tab2:
             
         st.divider()
         st.subheader("Comparison Tool")
-        logo_name_options = filtered_df['Logo_Name'].unique()  # 仅显示筛选后的公司
+        logo_name_options = filtered_df['Logo_Name'].unique()
         default_compare = [filtered_df[filtered_df['Full_Name'] == target_full_name]['Logo_Name'].iloc[0]] if not filtered_df[filtered_df['Full_Name'] == target_full_name].empty else []
         if 'The Coca-Cola Company (KO)' in logo_name_options:
             default_compare.append('The Coca-Cola Company (KO)')
@@ -386,9 +449,8 @@ with tab3:
 with tab4:
     st.subheader("📘 Company Reference (Full Name & Real Logo)")
     
-    ref_df = filtered_df[['Ticker', 'Full_Name', 'Sector', 'Logo_HTML']].drop_duplicates(subset=['Ticker']).sort_values('Sector')  # 仅显示筛选后的公司
+    ref_df = filtered_df[['Ticker', 'Full_Name', 'Sector', 'Logo_HTML']].drop_duplicates(subset=['Ticker']).sort_values('Sector')
     
-    # 重新构建Logo & Name列，确保HTML正确渲染
     ref_df['Logo & Name'] = ref_df.apply(
         lambda row: f"{row['Logo_HTML']} <span class='ref-ticker-col'>{row['Ticker']}</span>: {row['Full_Name']}", axis=1
     )
@@ -396,7 +458,6 @@ with tab4:
     final_ref_df = ref_df[['Logo & Name', 'Sector']]
     
     st.markdown("以下是筛选后的数据中出现的公司及其信息：", unsafe_allow_html=True)
-    # 使用st.write渲染HTML表格
     st.write(final_ref_df.to_html(escape=False, index=False), unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
