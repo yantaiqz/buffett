@@ -369,9 +369,9 @@ if not filtered_df.empty:
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric(t["start_period"], start_date.strftime("%Y Q%q"))
+            st.metric(t["start_period"], start_date.strftime("%Y"))
         with col2:
-            st.metric(t["end_period"], end_date.strftime("%Y Q%q"))
+            st.metric(t["end_period"], end_date.strftime("%Y"))
         with col3:
             st.metric(t["top_holding"], top_holding['Logo_Name'], f"{top_holding['Percent_Portfolio']}%")
         with col4:
