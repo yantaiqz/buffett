@@ -177,9 +177,6 @@ def load_data():
 
 df, full_name_map, sector_map = load_data()
 
-# -----------------------------------------------------------------------------
-# 新增：构建带Logo的自定义图例函数
-# -----------------------------------------------------------------------------
 def add_custom_legend(fig, df, chart_type="area"):
     """
     为Plotly图表添加带Logo的自定义图例
@@ -211,10 +208,10 @@ def add_custom_legend(fig, df, chart_type="area"):
         b64_map[name] = df[df['Logo_Name'] == name]['Logo_B64'].iloc[0]
     
     # 自定义图例的位置和大小（右侧，从上到下排列）
-    legend_x = 1.02  # 图例在图表右侧
-    legend_y_start = 0.95  # 图例顶部起始位置
-    item_height = 0.04  # 每个图例项的高度
-    logo_size = 20  # Logo大小（像素）
+    legend_x = 1.02  # 图例在图表右侧（paper坐标系，1为图表右边界）
+    legend_y_start = 0.95  # 图例顶部起始位置（paper坐标系，1为图表上边界）
+    item_height = 0.04  # 每个图例项的高度（paper坐标系）
+    logo_size_ratio = 0.02  # Logo的大小（相对图表的比例，0-1）
     
     for i, name in enumerate(unique_names):
         y_pos = legend_y_start - i * item_height
@@ -229,20 +226,23 @@ def add_custom_legend(fig, df, chart_type="area"):
                 y=y_pos,
                 xref="paper",
                 yref="paper",
-                sizex=logo_size/fig.layout.width*2,  # 适配图表宽度
-                sizey=logo_size/fig.layout.height*2,  # 适配图表高度
+                sizex=logo_size_ratio,
+                sizey=logo_size_ratio,
                 xanchor="left",
                 yanchor="middle"
             )
         )
         
         # 2. 添加颜色方块（模拟图例的颜色标识）
+        # 颜色方块的大小适配item_height
+        rect_width = 0.015  # 颜色方块的宽度（paper坐标系）
+        rect_height = item_height * 0.6  # 颜色方块的高度（paper坐标系）
         fig.add_shape(
             type="rect",
-            x0=legend_x + 0.03,
-            y0=y_pos - item_height/4,
-            x1=legend_x + 0.04,
-            y1=y_pos + item_height/4,
+            x0=legend_x + logo_size_ratio + 0.005,  # Logo右侧偏移一点
+            y0=y_pos - rect_height/2,
+            x1=legend_x + logo_size_ratio + 0.005 + rect_width,
+            y1=y_pos + rect_height/2,
             xref="paper",
             yref="paper",
             fillcolor=color_map.get(name, '#000000'),
@@ -250,8 +250,9 @@ def add_custom_legend(fig, df, chart_type="area"):
         )
         
         # 3. 添加文本标签
+        text_x = legend_x + logo_size_ratio + 0.005 + rect_width + 0.005  # 颜色方块右侧偏移一点
         fig.add_annotation(
-            x=legend_x + 0.05,
+            x=text_x,
             y=y_pos,
             text=name,
             xref="paper",
@@ -262,10 +263,13 @@ def add_custom_legend(fig, df, chart_type="area"):
             showarrow=False
         )
     
-    # 调整图表右侧边距，为自定义图例留出空间
-    fig.update_layout(margin=dict(right=max(200, len(unique_names)*20)))
+    # 调整图表右侧边距，为自定义图例留出空间（根据图例项数量动态调整）
+    legend_count = min(len(unique_names), int(0.95/item_height))  # 实际显示的图例项数
+    right_margin = 150 + legend_count * 10  # 基础边距+按项数增加
+    fig.update_layout(margin=dict(right=right_margin))
     
     return fig
+
 
 # -----------------------------------------------------------------------------
 # 4. Sidebar 控制区（保持不变）
