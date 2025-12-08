@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import datetime
+import json  # 新增：计数功能依赖
+import os    # 新增：文件判断依赖
 
 # -----------------------------------------------------------------------------
 # 2. 配置页面 (Silicon Valley Minimalist Style)
