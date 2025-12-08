@@ -94,8 +94,8 @@ elif st.session_state.access_status == 'unlocked':
         st.rerun()
 
 if not access_granted:
-    st.error("🔒 **访问受限。免费试用期已结束！**")
-    st.markdown(f"""
+    st.error("🔒 **访问受限。免费试用期已结束！**")
+    st.markdown(f"""
 <div style="background-color: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 15px;">
     <p style="font-weight: 600; color: #1f2937; margin-bottom: 5px;">🔑 10元解锁无限制访问权限，获取代码链接 (请在微信中打开)</p>
     <p style="font-size: 0.9em; background-color: #eef2ff; padding: 8px; border-radius: 4px; overflow-wrap: break-word;">
