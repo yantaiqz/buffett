@@ -664,5 +664,12 @@ st.markdown(t["footer"])
 # -------- 每日访问统计 --------
 daily_visits = update_daily_visits()
 visit_text = f"今日访问: {daily_visits}"
-# ... (在底部声明中显示 visit_text) ...
+
+# ... (在主程序末尾的 HTML 声明中显示 visit_text) ...
+st.markdown(f"""
+    <div style='text-align:center; color:#94a3b8; font-size:0.75rem; margin-top:40px; line-height: 1.5;'>
+        {text['disclaimer']}<br>
+        <span style="opacity: 0.7">{visit_text}</span>
+    </div>
+    """, unsafe_allow_html=True)
 
