@@ -4,6 +4,115 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 
+COUNTER_FILE = "visit_stats.json"
+
+def update_daily_visits():
+    """安全更新访问量，如果出错则返回 0，绝不让程序崩溃"""
+    try:
+        today_str = datetime.date.today().isoformat()
+        
+        # 避免同一会话重复计数
+        if "has_counted" in st.session_state:
+            if os.path.exists(COUNTER_FILE):
+                try:
+                    with open(COUNTER_FILE, "r") as f:
+                        return json.load(f).get("count", 0)
+                except:
+                    return 0
+            return 0
+
+        data = {"date": today_str, "count": 0}
+        
+        # 读取文件，如果日期匹配则累加，否则重置
+        if os.path.exists(COUNTER_FILE):
+            try:
+                with open(COUNTER_FILE, "r") as f:
+                    file_data = json.load(f)
+                    if file_data.get("date") == today_str:
+                        data = file_data
+            except:
+                pass
+        
+        data["count"] += 1
+        
+        with open(COUNTER_FILE, "w") as f:
+            json.dump(data, f)
+        
+        st.session_state["has_counted"] = True
+        return data["count"]
+        
+    except Exception as e:
+        return 0
+        
+# --- 权限配置 ---
+FREE_PERIOD_SECONDS = 60      # 免费试用期 60 秒
+ACCESS_DURATION_HOURS = 24    # 密码解锁后的访问时长 24 小时
+UNLOCK_CODE = "vip24"        # 预设的解锁密码
+# --- 配置结束 ---
+
+# 'start_time': 首次访问时间，用于计算免费试用期
+if 'start_time' not in st.session_state:
+    st.session_state.start_time = datetime.datetime.now()
+    # 'access_status': 'free' (免费期), 'locked' (需解锁), 'unlocked' (已解锁)
+    st.session_state.access_status = 'free'
+    st.session_state.unlock_time = None # 记录密码解锁的时间点
+
+current_time = datetime.datetime.now()
+access_granted = False # 默认无权限
+
+# 检查当前状态并更新
+if st.session_state.access_status == 'free':
+    time_elapsed = (current_time - st.session_state.start_time).total_seconds()
+    
+    if time_elapsed < FREE_PERIOD_SECONDS:
+        # 仍在免费期内
+        access_granted = True
+        time_left = FREE_PERIOD_SECONDS - time_elapsed
+        st.info(f"⏳ **免费试用中... 剩余 {time_left:.1f} 秒。**")
+    else:
+        # 免费期结束，进入锁定状态
+        st.session_state.access_status = 'locked'
+        st.session_state.start_time = None 
+        st.rerun() 
+        
+elif st.session_state.access_status == 'unlocked':
+    # 计算解锁到期时间
+    unlock_expiry = st.session_state.unlock_time + datetime.timedelta(hours=ACCESS_DURATION_HOURS)
+    
+    if current_time < unlock_expiry:
+        # 在 24 小时有效期内
+        access_granted = True
+        time_left_delta = unlock_expiry - current_time
+        hours = int(time_left_delta.total_seconds() // 3600)
+        minutes = int((time_left_delta.total_seconds() % 3600) // 60)
+        
+        st.info(f"🔓 **付费权限剩余:** {hours} 小时 {minutes} 分钟")
+    else:
+        # 24 小时已过期，进入锁定状态
+        st.session_state.access_status = 'locked'
+        st.session_state.unlock_time = None
+        st.rerun()
+
+if not access_granted:
+    st.error("🔒 **访问受限。免费试用期已结束！**")
+    # ... (省略营销内容) ...
+
+    with st.form("access_lock_form"):
+        password_input = st.text_input("解锁代码:", type="password", key="password_input_key")
+        submit_button = st.form_submit_button("验证并解锁")
+        
+        if submit_button:
+            if password_input == UNLOCK_CODE:
+                st.session_state.access_status = 'unlocked'
+                st.session_state.unlock_time = datetime.datetime.now()
+                st.success("🎉 解锁成功！您已获得 1 天访问权限。页面即将刷新...")
+                st.rerun()
+            else:
+                st.error("❌ 代码错误，请重试。")
+                
+    # 强制停止脚本，隐藏所有受保护的内容
+    st.stop()
+
 # -----------------------------------------------------------------------------
 # 1. 多语言配置
 # -----------------------------------------------------------------------------
@@ -103,6 +212,11 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# -------- 每日访问统计 --------
+daily_visits = update_daily_visits()
+visit_text = f"今日访问: {daily_visits}"
+# ... (在底部声明中显示 visit_text) ...
 
 # 在侧边栏顶部添加语言选择器
 st.sidebar.selectbox(
