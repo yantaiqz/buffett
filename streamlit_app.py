@@ -4,6 +4,17 @@ import plotly.express as px
 import plotly.graph_objects as go
 import datetime
 
+# -----------------------------------------------------------------------------
+# 2. 配置页面 (Silicon Valley Minimalist Style)
+# -----------------------------------------------------------------------------
+# 先设置页面配置（必须在开头）
+st.set_page_config(
+    page_title="Berkshire Portfolio | 2000-2025",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 COUNTER_FILE = "visit_stats.json"
 
 def update_daily_visits():
@@ -210,16 +221,7 @@ LANG = {
     }
 }
 
-# -----------------------------------------------------------------------------
-# 2. 配置页面 (Silicon Valley Minimalist Style)
-# -----------------------------------------------------------------------------
-# 先设置页面配置（必须在开头）
-st.set_page_config(
-    page_title="Berkshire Portfolio | 2000-2025",
-    page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+
 
 # -------- 每日访问统计 --------
 daily_visits = update_daily_visits()
