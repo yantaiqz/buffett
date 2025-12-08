@@ -222,12 +222,6 @@ LANG = {
 }
 
 
-
-# -------- 每日访问统计 --------
-daily_visits = update_daily_visits()
-visit_text = f"今日访问: {daily_visits}"
-# ... (在底部声明中显示 visit_text) ...
-
 # 在侧边栏顶部添加语言选择器
 st.sidebar.selectbox(
     "🌐 Language / 语言",
@@ -666,3 +660,9 @@ with tab4:
 # -----------------------------------------------------------------------------
 st.markdown("---")
 st.markdown(t["footer"])
+
+# -------- 每日访问统计 --------
+daily_visits = update_daily_visits()
+visit_text = f"今日访问: {daily_visits}"
+# ... (在底部声明中显示 visit_text) ...
+
