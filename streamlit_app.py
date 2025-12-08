@@ -159,7 +159,7 @@ st.sidebar.selectbox(
     "🌐 Language / 语言",
     options=["English", "中文"],
     key="language",
-    index=0
+    index=1
 )
 
 # 获取当前语言设置
