@@ -470,36 +470,6 @@ st.title(t["title"])
 st.caption(t["caption"])
 
 
-if not filtered_df.empty:
-    latest_date_filtered = filtered_df['Date'].max()
-    latest_data_filtered = filtered_df[filtered_df['Date'] == latest_date_filtered]
-    
-    if not latest_data_filtered.empty:
-        top_holding = latest_data_filtered.sort_values(by='Value_Billions', ascending=False).iloc[0]
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric(t["start_period"], start_date.strftime("%Y"))
-        with col2:
-            st.metric(t["end_period"], end_date.strftime("%Y"))
-        with col3:
-            st.metric(t["top_holding"], top_holding['Logo_Name'], f"{top_holding['Percent_Portfolio']}%")
-        with col4:
-            top_sector_value = latest_data_filtered.groupby('Sector')['Value_Billions'].sum()
-            if not top_sector_value.empty:
-                top_sector = top_sector_value.idxmax()
-                top_sector_percent = top_sector_value.max() / top_sector_value.sum() * 100
-                st.metric(t["top_sector"], top_sector, f"{top_sector_percent:.1f}%")
-            else:
-                st.metric(t["top_sector"], "N/A", "0%")
-    else:
-        st.warning(t["warning_no_latest_data"])
-        st.stop()
-else:
-    st.warning(t["warning_no_data"])
-    st.stop()
-
-st.markdown("---")
 
 # -----------------------------------------------------------------------------
 # 7. 可视化 Tab 页
