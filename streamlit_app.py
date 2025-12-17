@@ -51,7 +51,7 @@ st.markdown("""
 
 
 # 创建右上角布局（占满整行，右侧显示按钮/链接）
-col_empty, col_lang, col_more = st.columns([0.7, 0.1])
+col_empty, col_more = st.columns([0.7, 0.1])
 
 with col_more:
     # 修复：改用 HTML 链接按钮（替代 webbrowser 方式，兼容 Streamlit 云环境）
