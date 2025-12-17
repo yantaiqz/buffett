@@ -6,6 +6,65 @@ import datetime
 import json  # 新增：计数功能依赖
 import os    # 新增：文件判断依赖
 
+
+
+# -------------------------- 右上角功能区 --------------------------
+
+st.markdown("""
+<style>
+
+    /* 隐藏右上角的 Streamlit 主菜单（包含部署、源码、设置等） */
+    #MainMenu {visibility: hidden;}
+    /* 隐藏页脚（包含 "Made with Streamlit" 文字） */
+    footer {visibility: hidden;}
+    /* 隐藏顶部的 header（包含部署按钮） */
+    header[data-testid="stHeader"] {display: none;}
+    
+    /* 2. HTML 链接按钮 (Get New Apps) */
+    .neal-btn {
+        font-family: 'Inter', sans-serif;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        color: #111;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        text-decoration: none !important;
+        width: 100%;
+        height: 38px; /* 强制与 st.button 高度对齐 */
+    }
+    .neal-btn:hover {
+        background: #f9fafb;
+        border-color: #111;
+        transform: translateY(-1px);
+    }
+    .neal-btn-link { text-decoration: none; width: 100%; display: block; }
+</style>
+""", unsafe_allow_html=True)
+
+
+# 创建右上角布局（占满整行，右侧显示按钮/链接）
+col_empty, col_lang, col_more = st.columns([0.7, 0.1])
+
+with col_more:
+    # 修复：改用 HTML 链接按钮（替代 webbrowser 方式，兼容 Streamlit 云环境）
+    st.markdown(
+        f"""
+        <a href="https://haowan.streamlit.app/" target="_blank" class="neal-btn-link">
+            <button class="neal-btn">✨ 更多好玩应用</button>
+        </a>
+        """, 
+        unsafe_allow_html=True
+    )
+
+
 # -----------------------------------------------------------------------------
 # 2. 配置页面 (Silicon Valley Minimalist Style)
 # -----------------------------------------------------------------------------
@@ -409,78 +468,6 @@ highlighted_df = filtered_df[filtered_df['Full_Name'].isin(selected_full_names)]
 # -----------------------------------------------------------------------------
 st.title(t["title"])
 st.caption(t["caption"])
-
-
-# 'start_time': 首次访问时间，用于计算免费试用期
-if 'start_time' not in st.session_state:
-    st.session_state.start_time = datetime.datetime.now()
-    # 'access_status': 'free' (免费期), 'locked' (需解锁), 'unlocked' (已解锁)
-    st.session_state.access_status = 'free'
-    st.session_state.unlock_time = None # 记录密码解锁的时间点
-
-current_time = datetime.datetime.now()
-access_granted = False # 默认无权限
-
-# 检查当前状态并更新
-if st.session_state.access_status == 'free':
-    time_elapsed = (current_time - st.session_state.start_time).total_seconds()
-    
-    if time_elapsed < FREE_PERIOD_SECONDS:
-        # 仍在免费期内
-        access_granted = True
-        time_left = FREE_PERIOD_SECONDS - time_elapsed
-        st.info(f"⏳ **免费试用中... 剩余 {time_left:.1f} 秒。**")
-    else:
-        # 免费期结束，进入锁定状态
-        st.session_state.access_status = 'locked'
-        st.session_state.start_time = None 
-        st.rerun() 
-        
-elif st.session_state.access_status == 'unlocked':
-    # 计算解锁到期时间
-    unlock_expiry = st.session_state.unlock_time + datetime.timedelta(hours=ACCESS_DURATION_HOURS)
-    
-    if current_time < unlock_expiry:
-        # 在 24 小时有效期内
-        access_granted = True
-        time_left_delta = unlock_expiry - current_time
-        hours = int(time_left_delta.total_seconds() // 3600)
-        minutes = int((time_left_delta.total_seconds() % 3600) // 60)
-        
-        st.info(f"🔓 **付费权限剩余:** {hours} 小时 {minutes} 分钟")
-    else:
-        # 24 小时已过期，进入锁定状态
-        st.session_state.access_status = 'locked'
-        st.session_state.unlock_time = None
-        st.rerun()
-
-if not access_granted:
-    st.error("🔒 **访问受限。免费试用期已结束！**")
-    st.markdown(f"""
-<div style="background-color: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin-top: 15px;">
-    <p style="font-weight: 600; color: #1f2937; margin-bottom: 5px;">🔑 10元解锁无限制访问权限，获取代码链接 (请在微信中打开)</p>
-    <p style="font-size: 0.9em; background-color: #eef2ff; padding: 8px; border-radius: 4px; overflow-wrap: break-word;">
-        <code>#小程序://闲鱼/i4ahD0rqwGB5lba</code>
-    </p>
-</div>
-    """, unsafe_allow_html=True)
-
-    with st.form("access_lock_form"):
-        password_input = st.text_input("解锁代码:", type="password", key="password_input_key")
-        submit_button = st.form_submit_button("验证并解锁")
-        
-        if submit_button:
-            if password_input == UNLOCK_CODE:
-                st.session_state.access_status = 'unlocked'
-                st.session_state.unlock_time = datetime.datetime.now()
-                st.success("🎉 解锁成功！您已获得 1 天访问权限。页面即将刷新...")
-                st.rerun()
-            else:
-                st.error("❌ 代码错误，请重试。")
-                
-    # 强制停止脚本，隐藏所有受保护的内容
-    st.stop()
-
 
 
 if not filtered_df.empty:
