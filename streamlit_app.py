@@ -469,6 +469,25 @@ highlighted_df = filtered_df[filtered_df['Full_Name'].isin(selected_full_names)]
 st.title(t["title"])
 st.caption(t["caption"])
 
+if not filtered_df.empty:
+    latest_date_filtered = filtered_df['Date'].max()
+    latest_data_filtered = filtered_df[filtered_df['Date'] == latest_date_filtered]
+    
+    if not latest_data_filtered.empty:
+        top_holding = latest_data_filtered.sort_values(by='Value_Billions', ascending=False).iloc[0]
+        
+        col1, col2, col3, col4 = st.columns(4)
+
+        ####
+    
+    else:
+        st.warning(t["warning_no_latest_data"])
+        st.stop()
+else:
+    st.warning(t["warning_no_data"])
+    st.stop()
+
+st.markdown("---")
 
 
 # -----------------------------------------------------------------------------
